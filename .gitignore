@@ -3,6 +3,7 @@
 .classpath
 .DS_Store
 .history
+.g8
 .idea
 idea
 /.idea/*
