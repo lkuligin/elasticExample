@@ -1,2 +1,14 @@
 *.class
 *.log
+.classpath
+.DS_Store
+.history
+.idea
+idea
+/.idea/*
+logs
+out
+RUNNING_PID
+project/project
+project/target
+target
