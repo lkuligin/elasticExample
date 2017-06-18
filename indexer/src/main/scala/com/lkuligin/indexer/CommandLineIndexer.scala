@@ -15,30 +15,30 @@ class CommandLineIndexer(args: Array[String],
                          bufferSize: Int,
                          elasticHost: String,
                          elasticPort: Int) extends LazyLogging {
-  args.length match {
-    case 1 => {
-      val dir = System.getProperty("user.dir")
-      val basePath = FileSystems.getDefault().getPath(dir)
-      val resolvedPath = basePath.resolve(dir + "/" + args(0)).normalize().toString()
-      println(resolvedPath)
 
-      logger.info("starting the file processing: " + resolvedPath)
-
-      val elasticConnector = new ElasticIndexConnector(elasticHost, elasticPort)
-      val jsonTransformer = EnronJsonTransformerToElastic
-
-      val fileProcessor = new SourceProcessor(() => getObservable(resolvedPath),
-        bufferSize,
-        jsonTransformer.transformLine(_),
-        elasticConnector.bulkIndexing(_))
-      val result = fileProcessor.process()
-      logger.debug("result " + result)
-      elasticConnector.close()
-      //findDuplicates(resolvedPath)
-
-
+  List("input").flatMap(x => argParser(args, List("input")).get(Symbol(x))) match {
+    case fileName :: Nil => indexFile(fileName)
+    case _ => throw new IllegalArgumentException("Please provide the argument for file name: --input FileName")
     }
-    case _ => throw new IllegalArgumentException("exactly 1 argument (raw json path) should be provided!")
+
+  private def indexFile(fileName: String) = {
+    val dir = System.getProperty("user.dir")
+    val basePath = FileSystems.getDefault().getPath(dir)
+    val resolvedPath = basePath.resolve(dir + "/" + fileName).normalize().toString()
+
+    logger.info("starting the file processing: " + resolvedPath)
+
+    val elasticConnector = new ElasticIndexConnector(elasticHost, elasticPort)
+    val jsonTransformer = EnronJsonTransformerToElastic
+
+    val fileProcessor = new SourceProcessor(() => getObservable(resolvedPath),
+      bufferSize,
+      jsonTransformer.transformLine(_),
+      elasticConnector.bulkIndexing(_))
+    val result = fileProcessor.process()
+    logger.debug("result " + result)
+    elasticConnector.close()
+    //findDuplicates(resolvedPath)
   }
 
   private def getObservable(fileName: String): Observable[Line] = {
@@ -53,6 +53,20 @@ class CommandLineIndexer(args: Array[String],
     println(dup)
   }
 
+  private def argParser(args: Array[String],
+                        possibleArguments:List[String]): Map[Symbol, String] = {
+    type OptionMap = Map[Symbol, String]
+
+    def allowedArgument(arg: String)= ((arg(0) == '-') && (possibleArguments.contains(arg.substring(1))))
+
+    def nextOption(map : OptionMap, list: List[String]) : OptionMap = list match {
+      case Nil => map
+      case arg :: value :: tail if allowedArgument(arg) =>
+        nextOption(map ++ Map(Symbol(arg.substring(1)) -> value), tail)
+      case _ =>  throw new IllegalArgumentException("exactly 1 argument (raw json path) should be provided!")
+      }
+    nextOption(Map(),args.toList)
+  }
 }
 
 object CommandLineIndexer {
