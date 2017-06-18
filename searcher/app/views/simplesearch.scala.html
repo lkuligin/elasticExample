@@ -1,0 +1,13 @@
+@main("Simple search example") {
+  <p>Document type: <b>Enron</b>, document type: <b>email</b></p>
+
+  <div ng-controller="SearchController" ng-app="app">
+    <input ng-model="input" ng-model="Simple search" placeholder="Enter your query!" ng-change="doSearch(input)" autofocus>
+    <h2>There are {{ hits }} results shown {{ results.length }}</h2><br>
+    <ul>
+      <li ng-repeat="result in results">
+        {{ result }}</li>
+    </ul>
+  </div>
+
+}
